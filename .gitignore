@@ -1,0 +1,12 @@
+env/
+venv/
+data/raw/*.csv
+data/processed/*.csv
+data/processed/*.npy
+__pycache__/
+*.pyc
+test_upload.csv
+data/last_upload_results.csv
+logs/detection_log.csv
+.DS_Store
+Thumbs.db

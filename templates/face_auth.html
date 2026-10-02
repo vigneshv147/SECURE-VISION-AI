@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Face Authentication & Recognition</h2>
+        <div class="text-muted small">Live camera feed with YOLO detection and identity verification</div>
+    </div>
+    <div class="d-flex gap-2">
+        {% if cam_status.status != 'ONLINE' %}
+        <button class="btn btn-primary-glow" id="btnStartCam">
+            <i class="fa-solid fa-camera me-2"></i> Activate Camera
+        </button>
+        {% else %}
+        <button class="btn btn-outline-danger" id="btnStopCam">
+            <i class="fa-solid fa-video-slash me-2"></i> Stop Camera
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── Camera Source Selector ─────────────────────────────────────── -->
+<div class="glass-card mb-4 p-0 overflow-hidden">
+    <div class="card-header-glass" style="border-left: 4px solid var(--soc-primary);">
+        <span><i class="fa-solid fa-camera-rotate me-2 text-primary"></i>Camera Source</span>
+        <span class="badge-soc badge-info" id="srcActiveLabel">
+            {{ cam_status.camera_label if cam_status.camera_label else 'Webcam' }}
+        </span>
+    </div>
+    <div class="card-body-glass py-3">
+        <div class="row g-3 align-items-end">
+
+            <!-- Source type tabs -->
+            <div class="col-md-3">
+                <label class="text-muted small text-uppercase mb-2 d-block tracking-wider">Source Type</label>
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="camType" id="typeWebcam" value="webcam" checked>
+                    <label class="btn btn-outline-secondary btn-sm" for="typeWebcam">
+                        <i class="fa-solid fa-webcam me-1"></i> Webcam
+                    </label>
+                    <input type="radio" class="btn-check" name="camType" id="typeIP" value="ip">
+                    <label class="btn btn-outline-primary btn-sm" for="typeIP">
+                        <i class="fa-solid fa-industry me-1"></i> Industrial / IP
+                    </label>
+                </div>
+            </div>
+
+            <!-- Webcam index (shown for webcam mode) -->
+            <div class="col-md-3" id="webcamPanel">
+                <label class="text-muted small text-uppercase mb-2 d-block">Camera Index</label>
+                <select class="form-select form-select-sm" id="webcamIndex">
+                    <option value="0">Index 0 — Default Webcam</option>
+                    <option value="1">Index 1 — Secondary Camera</option>
+                    <option value="2">Index 2 — Tertiary Camera</option>
+                    <option value="3">Index 3</option>
+                    <option value="4">Index 4</option>
+                </select>
+            </div>
+
+            <!-- RTSP/HTTP URL (shown for IP mode) -->
+            <div class="col-md-5 d-none" id="ipPanel">
+                <label class="text-muted small text-uppercase mb-2 d-block">Stream URL</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="rtspUrl"
+                    placeholder="rtsp://admin:password@192.168.1.64:554/stream1">
+                <div class="text-muted mt-1" style="font-size: 0.72rem;">
+                    Supports RTSP, HTTP-MJPEG (http://ip/video.mjpg), or ONVIF streams
+                </div>
+            </div>
+
+            <!-- Label (optional) -->
+            <div class="col-md-2 d-none" id="ipLabelPanel">
+                <label class="text-muted small text-uppercase mb-2 d-block">Label</label>
+                <input type="text" class="form-control form-control-sm" id="camLabel"
+                    placeholder="e.g. CAM-01 Entry">
+            </div>
+
+            <!-- Apply button -->
+            <div class="col-md-2">
+                <button class="btn btn-primary-glow w-100" id="btnApplySource">
+                    <i class="fa-solid fa-plug me-1"></i> Apply
+                </button>
+            </div>
+        </div>
+
+        <!-- Status feedback -->
+        <div id="srcFeedback" class="mt-2 small d-none"></div>
+
+        <!-- Quick RTSP examples -->
+        <div id="rtspExamples" class="d-none mt-3 pt-3 border-top border-secondary border-opacity-25">
+            <div class="text-muted small text-uppercase mb-2">Common Industrial Camera Formats</div>
+            <div class="d-flex flex-wrap gap-2">
+                <code class="small example-url" style="cursor:pointer;"
+                    title="Click to use">rtsp://admin:password@{IP}:554/stream1</code>
+                <code class="small example-url" style="cursor:pointer;"
+                    title="Click to use">rtsp://{IP}:8554/live</code>
+                <code class="small example-url" style="cursor:pointer;"
+                    title="Click to use">http://{IP}/video.mjpg</code>
+                <code class="small example-url" style="cursor:pointer;"
+                    title="Click to use">http://{IP}:8080/?action=stream</code>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Camera Feed -->
+    <div class="col-lg-8">
+        <div class="glass-card p-3">
+            <div class="cam-wrapper">
+                {% if cam_status.status == 'ONLINE' %}
+                    <img src="/video-feed" class="cam-feed" alt="Live Camera Feed">
+                    <div class="cam-overlay d-flex flex-column justify-content-end" style="bottom: 10px; top: auto;">
+                        <div>
+                            <div class="badge-soc badge-success"><span class="status-dot-sm pulse-green d-inline-block me-1"></span> LIVE</div>
+                            <span class="text-white small fw-bold text-shadow ms-2">AI-SOC CAM-01</span>
+                        </div>
+                        <div id="simpleOverlayName" class="text-white fw-bold mt-1 text-shadow fs-5 d-none">
+                            <!-- Dynamic username injected here -->
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="cam-empty">
+                        <i class="fa-solid fa-video-slash fs-1 mb-3"></i>
+                        <h5>Camera Offline</h5>
+                        <p class="small text-muted mb-0">Click Activate Camera to start the feed</p>
+                        {% if cam_status.error %}
+                        <p class="small text-danger mt-2">{{ cam_status.error }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recognition Status Panel -->
+    <div class="col-lg-4">
+        <div class="glass-card h-100 d-flex flex-column">
+            <div class="card-header-glass">
+                <span><i class="fa-solid fa-users-viewfinder me-2"></i>Live Detections</span>
+                <span class="badge-soc badge-info" id="detCount">0</span>
+            </div>
+            <div class="card-body-glass flex-grow-1" id="detContainer">
+                <div class="text-center text-muted mt-5">
+                    <i class="fa-solid fa-spinner fa-spin fs-4 mb-2"></i><br>
+                    Waiting for detections...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
+    <div class="col-12">
+        <div class="glass-card">
+            <div class="card-header-glass">Subsystem Diagnostics</div>
+            <div class="card-body-glass row">
+                <div class="col-md-3">
+                    <div class="text-muted small text-uppercase mb-1">Camera State</div>
+                    <div class="fw-bold {{ 'text-success' if cam_status.status == 'ONLINE' else 'text-danger' }}">
+                        {{ cam_status.status }}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small text-uppercase mb-1">YOLO Model</div>
+                    <div class="fw-bold {{ 'text-success' if face_status.yolo == 'ONLINE' else 'text-danger' }}">
+                        {{ face_status.yolo }}
+                    </div>
+                    <div class="small text-muted">{{ face_status.model_path.split('/')[-1] }}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small text-uppercase mb-1">Classes Loaded</div>
+                    <div class="fw-bold">{{ face_status.class_names|join(', ') }}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small text-uppercase mb-1">Enrolled Users DB</div>
+                    <div class="fw-bold">{{ users|length }} User(s)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Camera controls
+const btnStart = document.getElementById('btnStartCam');
+const btnStop = document.getElementById('btnStopCam');
+
+if (btnStart) {
+    btnStart.addEventListener('click', async () => {
+        btnStart.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Starting...';
+        const res = await fetch('/api/camera/start', {method: 'POST'});
+        if (res.ok) window.location.reload();
+    });
+}
+if (btnStop) {
+    btnStop.addEventListener('click', async () => {
+        btnStop.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Stopping...';
+        const res = await fetch('/api/camera/stop', {method: 'POST'});
+        if (res.ok) window.location.reload();
+    });
+}
+
+// Poll recognition state
+const detContainer = document.getElementById('detContainer');
+const detCount = document.getElementById('detCount');
+const simpleOverlayName = document.getElementById('simpleOverlayName');
+
+async function pollState() {
+    try {
+        const res = await fetch('/api/recognition/state');
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        detCount.innerText = data.count;
+        
+        if (data.count === 0) {
+            detContainer.innerHTML = `
+                <div class="text-center text-muted mt-5">
+                    <i class="fa-solid fa-eye-slash fs-4 mb-2"></i><br>
+                    No faces detected in frame.
+                </div>`;
+            if (simpleOverlayName) simpleOverlayName.classList.add('d-none');
+            return;
+        }
+
+        let html = '<div class="d-flex flex-column gap-3">';
+        let primarySubject = null;
+
+        data.detections.forEach(det => {
+            if (!primarySubject || det.status === 'AUTHENTICATED') {
+                primarySubject = det;
+            }
+
+            let statusBadge = '';
+            let icon = '';
+            let borderClass = '';
+            
+            if (det.status === 'AUTHENTICATED') {
+                statusBadge = '<span class="badge-soc badge-success">AUTHENTICATED</span>';
+                icon = '<i class="fa-solid fa-circle-check text-success fs-3"></i>';
+                borderClass = 'border-success';
+            } else if (det.status === 'UNKNOWN') {
+                statusBadge = '<span class="badge-soc badge-danger">UNKNOWN PERSON</span>';
+                icon = '<i class="fa-solid fa-circle-xmark text-danger fs-3"></i>';
+                borderClass = 'border-danger';
+            } else {
+                statusBadge = '<span class="badge-soc badge-warning">DETECTED</span>';
+                icon = '<i class="fa-solid fa-user-magnifying-glass text-warning fs-3"></i>';
+                borderClass = 'border-warning';
+            }
+
+            html += `
+                <div class="p-3 rounded bg-dark border border-opacity-25 ${borderClass}">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        ${icon}
+                        <div>
+                            <div class="fw-bold">${det.full_name || 'Unidentified Face'}</div>
+                            <div class="small text-muted">${det.role || 'No Identity Match'}</div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-secondary border-opacity-25">
+                        ${statusBadge}
+                        <div class="small text-muted">
+                            Conf: <span class="text-white">${(det.confidence * 100).toFixed(1)}%</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        detContainer.innerHTML = html;
+
+        // Simple Overlay Name text update
+        if (simpleOverlayName && primarySubject) {
+            simpleOverlayName.classList.remove('d-none');
+            if (primarySubject.status === 'AUTHENTICATED') {
+                simpleOverlayName.innerHTML = `<span class="text-success"><i class="fa-solid fa-fingerprint me-2"></i>${primarySubject.full_name}</span>`;
+            } else {
+                simpleOverlayName.innerHTML = `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i>UNKNOWN</span>`;
+            }
+        }
+        
+    } catch (e) {}
+}
+
+if (document.querySelector('.cam-feed')) {
+    setInterval(pollState, 1000);
+}
+
+// ── Camera Source Switcher ────────────────────────────────────────────
+const typeWebcam   = document.getElementById('typeWebcam');
+const typeIP       = document.getElementById('typeIP');
+const webcamPanel  = document.getElementById('webcamPanel');
+const ipPanel      = document.getElementById('ipPanel');
+const ipLabelPanel = document.getElementById('ipLabelPanel');
+const rtspExamples = document.getElementById('rtspExamples');
+const btnApply     = document.getElementById('btnApplySource');
+const srcFeedback  = document.getElementById('srcFeedback');
+const srcActiveLabel = document.getElementById('srcActiveLabel');
+
+function showFeedback(msg, type='info') {
+    srcFeedback.className = `mt-2 small alert alert-${type} py-2`;
+    srcFeedback.innerText = msg;
+    srcFeedback.classList.remove('d-none');
+    if (type === 'success') setTimeout(() => srcFeedback.classList.add('d-none'), 4000);
+}
+
+// Toggle webcam / IP panels
+document.querySelectorAll('input[name="camType"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+        const isIP = typeIP.checked;
+        webcamPanel.classList.toggle('d-none', isIP);
+        ipPanel.classList.toggle('d-none', !isIP);
+        ipLabelPanel.classList.toggle('d-none', !isIP);
+        rtspExamples.classList.toggle('d-none', !isIP);
+    });
+});
+
+// Clickable RTSP examples → fill input
+document.querySelectorAll('.example-url').forEach(el => {
+    el.addEventListener('click', () => {
+        document.getElementById('rtspUrl').value = el.innerText;
+        document.getElementById('rtspUrl').focus();
+    });
+});
+
+// Apply source button
+if (btnApply) {
+    btnApply.addEventListener('click', async () => {
+        const isIP  = typeIP.checked;
+        const source = isIP
+            ? document.getElementById('rtspUrl').value.trim()
+            : document.getElementById('webcamIndex').value;
+        const label  = isIP
+            ? (document.getElementById('camLabel').value.trim() || 'Industrial Camera')
+            : `Webcam (index ${source})`;
+
+        if (isIP && !source) {
+            showFeedback('Please enter a valid RTSP or HTTP stream URL.', 'warning');
+            return;
+        }
+
+        btnApply.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Connecting...';
+        btnApply.disabled = true;
+
+        try {
+            const res = await fetch('/api/camera/set-source', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ source, label })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                showFeedback(`✓ Connected: ${label}`, 'success');
+                if (srcActiveLabel) srcActiveLabel.innerText = label;
+                // Reload page after short delay so video feed refreshes
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showFeedback(`✗ Failed: ${data.error || 'Could not open stream. Check URL/credentials.'}`, 'danger');
+            }
+        } catch (e) {
+            showFeedback('✗ Network error — server may be restarting.', 'danger');
+        } finally {
+            btnApply.innerHTML = '<i class="fa-solid fa-plug me-1"></i> Apply';
+            btnApply.disabled = false;
+        }
+    });
+}
+</script>
+{% endblock %}

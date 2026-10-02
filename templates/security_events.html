@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Unified Security Timeline</h2>
+        <div class="text-muted small">Correlated view of network threats and physical identity events</div>
+    </div>
+    <a href="/api/reports/security-export" class="btn btn-outline-light">
+        <i class="fa-solid fa-file-csv me-2"></i> Export CSV
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="glass-card">
+            <div class="card-header-glass">
+                <span><i class="fa-solid fa-list-ul me-2"></i>Event Timeline</span>
+                <span class="badge-soc badge-info">{{ events|length }} Events</span>
+            </div>
+            <div class="card-body-glass p-0">
+                {% if events %}
+                <div class="table-responsive" style="max-height: 800px;">
+                    <table class="table table-soc mb-0 table-hover">
+                        <thead style="position: sticky; top: 0; background: var(--soc-bg-panel-solid); z-index: 1;">
+                            <tr>
+                                <th>Time</th>
+                                <th>Event Type</th>
+                                <th>Severity</th>
+                                <th>Context (User/IP)</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in events %}
+                            <tr class="cursor-pointer" onclick="window.location='/security-events/{{ e.id }}'" style="cursor: pointer;">
+                                <td class="small white-space-nowrap">{{ e.timestamp.replace('T', ' ')[:19] }}</td>
+                                <td>
+                                    {% if e.event_type == 'UNKNOWN_FACE' %}
+                                        <i class="fa-solid fa-user-secret text-warning me-1"></i> Unknown Face
+                                    {% elif e.event_type == 'PORT_SCAN' %}
+                                        <i class="fa-solid fa-radar text-danger me-1"></i> Port Scan
+                                    {% elif e.event_type == 'NETWORK_ATTACK' %}
+                                        <i class="fa-solid fa-burst text-danger me-1"></i> Network Attack
+                                    {% else %}
+                                        {{ e.event_type }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if e.severity == 'CRITICAL' %}
+                                        <span class="badge-soc badge-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> CRITICAL</span>
+                                    {% elif e.severity == 'HIGH' %}
+                                        <span class="badge-soc badge-danger">HIGH</span>
+                                    {% elif e.severity == 'MEDIUM' %}
+                                        <span class="badge-soc badge-warning">MEDIUM</span>
+                                    {% else %}
+                                        <span class="badge-soc badge-info">{{ e.severity }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if e.user_id %}
+                                        <div class="fw-bold text-primary"><i class="fa-solid fa-user me-1"></i> {{ e.user_id }}</div>
+                                    {% endif %}
+                                    <code class="small text-white">{{ e.source_ip or 'Camera/Local' }}</code>
+                                </td>
+                                <td class="small text-muted text-truncate" style="max-width: 250px;">
+                                    {{ e.description or 'No details provided' }}
+                                    {% if e.shap_data %}
+                                        <i class="fa-solid fa-chart-pie text-success ms-1" title="SHAP Analysis Available"></i>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-5 text-muted">
+                    <i class="fa-solid fa-shield-check fs-2 mb-3 text-success"></i><br>
+                    No security events found. System is secure.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Correlated context pane -->
+        <div class="glass-card mb-4">
+            <div class="card-header-glass">
+                <span><i class="fa-solid fa-link me-2"></i>Identity Context</span>
+            </div>
+            <div class="card-body-glass">
+                <p class="small text-muted mb-4">
+                    The system automatically correlates network threats to active physical identities when a session source IP matches the attack source IP.
+                </p>
+                
+                <h6 class="fw-bold mb-3">Recent Auth Activity</h6>
+                <div class="timeline-container">
+                    {% for log in auth_logs[:5] %}
+                    <div class="timeline-item {{ 'attack' if log.status != 'SUCCESS' else '' }}">
+                        <div class="tl-time">{{ log.timestamp.split('T')[1][:8] }}</div>
+                        <div class="tl-content {{ 'attack' if log.status != 'SUCCESS' else '' }}">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold small">{{ log.event_type.replace('_', ' ') }}</span>
+                                {% if log.status == 'SUCCESS' %}
+                                    <span class="badge-soc badge-success py-1 px-2" style="font-size:0.6rem;">SUCCESS</span>
+                                {% else %}
+                                    <span class="badge-soc badge-danger py-1 px-2" style="font-size:0.6rem;">{{ log.status }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="small text-muted">
+                                {{ log.full_name or 'Unidentified' }} ({{ log.source_ip or 'Local' }})
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="small text-muted">No recent identity activity.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

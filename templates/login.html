@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block login_content %}
+<div class="login-container">
+    <div class="login-card">
+        <!-- Logo / Header -->
+        <div class="login-header">
+            <div class="login-shield-icon">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h1 class="login-title" style="font-size: 1.3rem;">Secure Vision AI</h1>
+            <p class="login-subtitle">Intelligent Physical & Network Intrusion System</p>
+        </div>
+
+        <!-- Status badges -->
+        <div class="login-status-row">
+            <span class="login-status-badge">
+                <span class="status-dot-sm pulse-green"></span>
+                NIDS-ML Active
+            </span>
+            <span class="login-status-badge">
+                <span class="status-dot-sm pulse-blue"></span>
+                YOLO Loaded
+            </span>
+            <span class="login-status-badge">
+                <span class="status-dot-sm pulse-purple"></span>
+                Face Auth Ready
+            </span>
+        </div>
+
+        <!-- Error Alert -->
+        {% if error %}
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Login Form -->
+        <form method="POST" action="/login" id="loginForm" autocomplete="off">
+            <div class="mb-4">
+                <label for="loginUsername" class="form-label fw-semibold">
+                    <i class="fa-solid fa-user-shield me-2 text-primary"></i>Username
+                </label>
+                <div class="input-group input-group-soc">
+                    <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="loginUsername"
+                        name="username"
+                        placeholder="admin"
+                        required
+                        autofocus
+                        autocomplete="username"
+                    >
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="loginPassword" class="form-label fw-semibold">
+                    <i class="fa-solid fa-lock me-2 text-primary"></i>Password
+                </label>
+                <div class="input-group input-group-soc">
+                    <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
+                    <input
+                        type="password"
+                        class="form-control"
+                        id="loginPassword"
+                        name="password"
+                        placeholder="••••••••"
+                        required
+                        autocomplete="current-password"
+                    >
+                    <button class="btn btn-outline-secondary" type="button" id="togglePw" tabindex="-1">
+                        <i class="fa-regular fa-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-login w-100" id="loginBtn">
+                <i class="fa-solid fa-right-to-bracket me-2"></i>
+                Authenticate
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <i class="fa-solid fa-lock-keyhole me-1"></i>
+            Secured with session-based authentication
+        </div>
+    </div>
+
+    <!-- Background animated grid -->
+    <div class="login-grid-bg"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Password toggle
+const toggleBtn = document.getElementById('togglePw');
+const pwInput = document.getElementById('loginPassword');
+const eyeIcon = document.getElementById('eyeIcon');
+if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+        const isText = pwInput.type === 'text';
+        pwInput.type = isText ? 'password' : 'text';
+        eyeIcon.className = isText ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash';
+    });
+}
+
+// Submit animation
+document.getElementById('loginForm').addEventListener('submit', () => {
+    const btn = document.getElementById('loginBtn');
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin me-2"></i>Verifying...';
+    btn.disabled = true;
+});
+</script>
+{% endblock %}

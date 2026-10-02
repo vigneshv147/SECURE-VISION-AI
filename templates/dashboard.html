@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="panel-banner">
+    <div>
+        <h3 class="mb-1"><i class="fa-solid fa-network-wired"></i> Network IDS Panel</h3>
+        <div style="opacity:0.85;">Real-time intrusion detection and threat analysis</div>
+    </div>
+    <div>
+        <span class="badge bg-danger me-2"><span class="live-dot"></span>Live</span>
+        <a href="/" class="btn btn-light btn-sm"><i class="fa-solid fa-rotate"></i> Refresh</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#3d7a72;"><i class="fa-solid fa-satellite-dish"></i></div>
+            <div class="kpi-value">{{ n_total }}</div>
+            <div class="kpi-label">Flows Monitored</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#b45454;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="kpi-value">{{ n_attacks }}</div>
+            <div class="kpi-label">Attacks Detected</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#c99a4a;"><i class="fa-solid fa-magnifying-glass"></i></div>
+            <div class="kpi-value">{{ n_scans }}</div>
+            <div class="kpi-label">Port Scans Flagged</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#4a9d6e;"><i class="fa-solid fa-shield-check"></i></div>
+            <div class="kpi-value">99.92%</div>
+            <div class="kpi-label">Model Accuracy</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-5">
+        <div class="section-card h-100">
+            <div class="section-header"><i class="fa-solid fa-chart-pie"></i> Traffic Distribution</div>
+            <div class="section-body">
+                <div style="height: 200px;">
+                    <canvas id="trafficChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="section-card h-100">
+            <div class="section-header"><i class="fa-solid fa-server"></i> Top Source IPs</div>
+            <div class="section-body">
+                <div style="height: 200px;">
+                    <canvas id="sourcesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-header"><i class="fa-solid fa-list"></i> Recent Detections</div>
+    <div class="section-body">
+        {% if recent_events %}
+            {% for event in recent_events %}
+            <div class="event-row {% if event.label == 'ATTACK' %}event-attack{% else %}event-benign{% endif %}">
+                <div>
+                    <strong>{{ event.source }}</strong> → {{ event.destination }}
+                    <span class="text-muted ms-2" style="font-size:0.85rem;">{{ event.timestamp }}</span>
+                </div>
+                <div>
+                    {% if event.label == 'ATTACK' %}
+                        <span class="badge-danger-soft">{{ event.type }}</span>
+                    {% else %}
+                        <span class="badge-safe-soft">Normal</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted mb-0">No detection events yet. Run <code>python src/realtime_detection.py</code> to start monitoring.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+Chart.defaults.color = '#c9d1d9';
+Chart.defaults.borderColor = '#2d3139';
+
+const trafficCtx = document.getElementById('trafficChart');
+new Chart(trafficCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Benign', 'Attack'],
+        datasets: [{
+            data: [{{ n_benign }}, {{ n_attacks }}],
+            backgroundColor: ['#4a9d6e', '#b45454'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '70%',
+        plugins: { legend: { position: 'bottom', labels: { color: '#c9d1d9', boxWidth: 12, font: { size: 11 } } } }
+    }
+});
+
+const sourcesCtx = document.getElementById('sourcesChart');
+new Chart(sourcesCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for ip, count in top_sources %}'{{ ip }}',{% endfor %}],
+        datasets: [{
+            label: 'Events',
+            data: [{% for ip, count in top_sources %}{{ count }},{% endfor %}],
+            backgroundColor: '#5b8fc7',
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: '#c9d1d9', font: { size: 10 } }, grid: { display: false } },
+            y: { ticks: { color: '#c9d1d9', font: { size: 10 } }, grid: { display: false } }
+        }
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="panel-banner">
+    <div>
+        <h3 class="mb-1"><i class="fa-solid fa-chart-column"></i> Reports and Analysis</h3>
+        <div style="opacity:0.85;">Filter and export historical detection events</div>
+    </div>
+    <div>
+        <a href="/reports/export?label={{ filters.label }}&event_type={{ filters.event_type }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&ip={{ filters.ip }}"
+           class="btn btn-light btn-sm">
+            <i class="fa-solid fa-download"></i> Export Full CSV
+        </a>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-header"><i class="fa-solid fa-filter"></i> Filter and Search</div>
+    <div class="section-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Label</label>
+                <select name="label" class="form-select">
+                    <option value="" {% if filters.label == "" %}selected{% endif %}>All</option>
+                    <option value="ATTACK" {% if filters.label == "ATTACK" %}selected{% endif %}>ATTACK</option>
+                    <option value="BENIGN" {% if filters.label == "BENIGN" %}selected{% endif %}>BENIGN</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Event Type</label>
+                <select name="event_type" class="form-select">
+                    <option value="" {% if filters.event_type == "" %}selected{% endif %}>All</option>
+                    <option value="FLOW" {% if filters.event_type == "FLOW" %}selected{% endif %}>FLOW</option>
+                    <option value="PORT_SCAN" {% if filters.event_type == "PORT_SCAN" %}selected{% endif %}>PORT_SCAN</option>
+                    <option value="BLOCKED_IP" {% if filters.event_type == "BLOCKED_IP" %}selected{% endif %}>BLOCKED_IP</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">IP Address</label>
+                <input type="text" name="ip" class="form-control" placeholder="192.168.1.1" value="{{ filters.ip }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-danger w-100"><i class="fa-solid fa-magnifying-glass"></i> Apply</button>
+            </div>
+        </form>
+        {% if filters.label or filters.event_type or filters.date_from or filters.date_to or filters.ip %}
+        <a href="/reports" class="btn btn-sm btn-outline-light mt-2"><i class="fa-solid fa-xmark"></i> Clear Filters</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if not has_data %}
+<div class="section-card">
+    <div class="section-body">
+        <div class="empty-state">
+            <i class="fa-solid fa-chart-column"></i>
+            No detection log found yet. Run <code>python src/realtime_detection.py</code> to start generating data.
+        </div>
+    </div>
+</div>
+{% else %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#5b8fc7;"><i class="fa-solid fa-database"></i></div>
+            <div class="kpi-value">{{ n_total }}</div>
+            <div class="kpi-label">Total Records</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#b45454;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="kpi-value">{{ n_attacks }}</div>
+            <div class="kpi-label">Threats Detected</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#4a9d6e;"><i class="fa-solid fa-shield-check"></i></div>
+            <div class="kpi-value">{{ n_benign }}</div>
+            <div class="kpi-label">Normal Traffic</div>
+        </div>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-header">
+        <i class="fa-solid fa-table"></i> Detailed Events (showing {{ rows|length }} of {{ n_total }})
+    </div>
+    <div class="section-body">
+        <div class="table-responsive" style="max-height: 500px;">
+            <table class="table table-sm table-dark table-hover table-striped">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Type</th>
+                        <th>Source</th>
+                        <th>Destination</th>
+                        <th>Label</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>{{ row.timestamp }}</td>
+                        <td>{{ row.type }}</td>
+                        <td>{{ row.source }}</td>
+                        <td>{{ row.destination }}</td>
+                        <td>
+                            {% if row.label == 'ATTACK' %}
+                                <span class="badge-danger-soft">ATTACK</span>
+                            {% else %}
+                                <span class="badge-safe-soft">BENIGN</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ "%.2f"|format(row.confidence|float * 100) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

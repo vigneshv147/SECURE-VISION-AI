@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">SOC Overview</h2>
+        <div class="text-muted small">Real-time security metrics and active threats</div>
+    </div>
+    <div class="d-flex gap-2">
+        {% if nids_status.status != 'ONLINE' %}
+        <button class="btn btn-primary-glow btn-sm" id="btnStartNids">
+            <i class="fa-solid fa-play me-1"></i> Start Network Monitor
+        </button>
+        {% else %}
+        <button class="btn btn-outline-danger btn-sm" id="btnStopNids">
+            <i class="fa-solid fa-stop me-1"></i> Stop Monitor
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- KPI ROW 1 -->
+<div class="metric-row">
+    <div class="glass-card metric-card">
+        <div class="metric-info">
+            <div class="metric-label">Enrolled Users</div>
+            <div class="metric-val">{{ stats.total_users }}</div>
+        </div>
+        <div class="metric-icon icon-blue"><i class="fa-solid fa-users"></i></div>
+    </div>
+    <div class="glass-card metric-card">
+        <div class="metric-info">
+            <div class="metric-label">Active Sessions</div>
+            <div class="metric-val">{{ stats.active_sessions }}</div>
+        </div>
+        <div class="metric-icon icon-green"><i class="fa-solid fa-shield-halved"></i></div>
+    </div>
+    <div class="glass-card metric-card">
+        <div class="metric-info">
+            <div class="metric-label">Auth Failures</div>
+            <div class="metric-val text-warning">{{ stats.auth_fail }}</div>
+        </div>
+        <div class="metric-icon icon-orange"><i class="fa-solid fa-user-lock"></i></div>
+    </div>
+    <div class="glass-card metric-card">
+        <div class="metric-info">
+            <div class="metric-label">Network Threats</div>
+            <div class="metric-val text-danger">{{ stats.threats_detected }}</div>
+        </div>
+        <div class="metric-icon icon-red"><i class="fa-solid fa-burst"></i></div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Active Sessions -->
+    <div class="col-lg-6">
+        <div class="glass-card h-100">
+            <div class="card-header-glass">
+                <span><i class="fa-solid fa-user-shield me-2"></i>Active Security Sessions</span>
+                <span class="badge-soc badge-info">{{ active_sessions|length }} Online</span>
+            </div>
+            <div class="card-body-glass p-0">
+                {% if active_sessions %}
+                <div class="table-responsive">
+                    <table class="table table-soc">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Session ID</th>
+                                <th>Source IP</th>
+                                <th>Login Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in active_sessions %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ s.full_name }}</div>
+                                    <div class="small text-muted">{{ s.role }}</div>
+                                </td>
+                                <td><code class="small">{{ s.session_id }}</code></td>
+                                <td>{{ s.source_ip or 'Local/Unknown' }}</td>
+                                <td class="small">{{ s.login_time.split('T')[1][:8] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4 text-muted">
+                    <i class="fa-solid fa-user-slash fs-4 mb-2"></i><br>
+                    No active sessions found.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Threats -->
+    <div class="col-lg-6">
+        <div class="glass-card h-100">
+            <div class="card-header-glass">
+                <span><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Recent Security Events</span>
+                <a href="/security-events" class="btn btn-sm btn-glass py-0">View All</a>
+            </div>
+            <div class="card-body-glass p-0">
+                {% if recent_events %}
+                <div class="table-responsive">
+                    <table class="table table-soc">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Source</th>
+                                <th>Severity</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in recent_events[:5] %}
+                            <tr>
+                                <td>
+                                    {% if e.event_type == 'UNKNOWN_FACE' %}
+                                        <i class="fa-solid fa-user-secret text-warning me-1"></i> Unknown Face
+                                    {% else %}
+                                        <i class="fa-solid fa-network-wired text-danger me-1"></i> Network
+                                    {% endif %}
+                                </td>
+                                <td>{{ e.source_ip or 'Camera' }}</td>
+                                <td>
+                                    {% if e.severity == 'CRITICAL' %}
+                                        <span class="badge-soc badge-danger">CRITICAL</span>
+                                    {% elif e.severity == 'HIGH' %}
+                                        <span class="badge-soc badge-danger">HIGH</span>
+                                    {% else %}
+                                        <span class="badge-soc badge-warning">{{ e.severity }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="small">{{ e.timestamp.split('T')[1][:8] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4 text-muted">
+                    <i class="fa-solid fa-shield-check text-success fs-4 mb-2"></i><br>
+                    No recent threats detected.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card mb-4">
+    <div class="card-header-glass">
+        <span><i class="fa-solid fa-server me-2"></i>Live NIDS Engine Feed</span>
+        <div class="d-flex gap-3 align-items-center">
+            <span class="small text-muted"><i class="fa-solid fa-arrow-right-arrow-left me-1"></i> Flows: <span id="lblFlows">{{ nids_stats.total_flows }}</span></span>
+            <span class="small text-muted"><i class="fa-solid fa-bug me-1"></i> Attacks: <span id="lblAttacks" class="text-danger">{{ nids_stats.attack_count }}</span></span>
+        </div>
+    </div>
+    <div class="card-body-glass p-0">
+        <div class="table-responsive" style="max-height: 300px;">
+            <table class="table table-soc mb-0" id="liveNidsTable">
+                <thead style="position: sticky; top: 0; background: var(--soc-bg-panel-solid); z-index: 1;">
+                    <tr>
+                        <th>Time</th>
+                        <th>Type</th>
+                        <th>Source → Dest</th>
+                        <th>Status</th>
+                        <th>Conf</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for evt in nids_events %}
+                    <tr>
+                        <td class="small">{{ evt.timestamp.split(' ')[1] if ' ' in evt.timestamp else evt.timestamp }}</td>
+                        <td>{{ evt.type }}</td>
+                        <td><code class="small text-white">{{ evt.source }} → {{ evt.destination }}</code></td>
+                        <td>
+                            {% if evt.label == 'ATTACK' %}
+                                <span class="badge-soc badge-danger">ATTACK</span>
+                            {% else %}
+                                <span class="badge-soc badge-success">BENIGN</span>
+                            {% endif %}
+                        </td>
+                        <td class="small">{{ "%.1f"|format(evt.confidence|float * 100) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// NIDS Start/Stop Handlers
+const btnStart = document.getElementById('btnStartNids');
+const btnStop = document.getElementById('btnStopNids');
+
+if (btnStart) {
+    btnStart.addEventListener('click', async () => {
+        btnStart.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Starting...';
+        const res = await fetch('/api/nids/start', {method: 'POST'});
+        if (res.ok) window.location.reload();
+    });
+}
+if (btnStop) {
+    btnStop.addEventListener('click', async () => {
+        btnStop.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Stopping...';
+        const res = await fetch('/api/nids/stop', {method: 'POST'});
+        if (res.ok) window.location.reload();
+    });
+}
+
+// Live Polling for NIDS table
+async function pollNids() {
+    try {
+        const res = await fetch('/api/nids/events?n=15');
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        const tbody = document.querySelector('#liveNidsTable tbody');
+        if (!tbody) return;
+        
+        let html = '';
+        data.events.forEach(evt => {
+            const time = evt.timestamp.includes(' ') ? evt.timestamp.split(' ')[1] : evt.timestamp;
+            const badge = evt.label === 'ATTACK' 
+                ? '<span class="badge-soc badge-danger">ATTACK</span>' 
+                : '<span class="badge-soc badge-success">BENIGN</span>';
+            const conf = (evt.confidence * 100).toFixed(1) + '%';
+            
+            html += `<tr>
+                <td class="small">${time}</td>
+                <td>${evt.type}</td>
+                <td><code class="small text-white">${evt.source} &rarr; ${evt.destination}</code></td>
+                <td>${badge}</td>
+                <td class="small">${conf}</td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+        
+    } catch(e) {}
+}
+setInterval(pollNids, 3000);
+</script>
+{% endblock %}

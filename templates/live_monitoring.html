@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+
+<meta http-equiv="refresh" content="5">
+
+<div class="panel-banner">
+    <div>
+        <h3 class="mb-1"><i class="fa-solid fa-satellite-dish"></i> Live Monitoring</h3>
+        <div style="opacity:0.85;">Auto-refreshing every 5 seconds</div>
+    </div>
+    <div>
+        <span class="badge bg-danger me-2"><span class="live-dot"></span>Live</span>
+        <a href="/live-monitoring" class="btn btn-light btn-sm"><i class="fa-solid fa-rotate"></i> Refresh Now</a>
+    </div>
+</div>
+
+{% if not has_data %}
+<div class="section-card">
+    <div class="section-body">
+        <div class="empty-state">
+            <i class="fa-solid fa-satellite-dish"></i>
+            No detection log found yet. Run this in a separate Administrator terminal:
+            <div class="mt-2"><code>python src/realtime_detection.py</code></div>
+        </div>
+    </div>
+</div>
+{% else %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#5b8fc7;"><i class="fa-solid fa-list"></i></div>
+            <div class="kpi-value">{{ n_total }}</div>
+            <div class="kpi-label">Events Shown</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#b45454;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="kpi-value">{{ n_attacks }}</div>
+            <div class="kpi-label">Attacks</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#4a9d6e;"><i class="fa-solid fa-shield-check"></i></div>
+            <div class="kpi-value">{{ n_benign }}</div>
+            <div class="kpi-label">Benign</div>
+        </div>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-header"><i class="fa-solid fa-bolt"></i> Recent Events (most recent first)</div>
+    <div class="section-body">
+        {% for row in rows %}
+        <div class="event-row {% if row.label == 'ATTACK' %}event-attack{% else %}event-benign{% endif %}">
+            <div>
+                {% if row.label == 'ATTACK' %}
+                    <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+                {% else %}
+                    <i class="fa-solid fa-circle-check text-success"></i>
+                {% endif %}
+                <strong>[{{ row.type }}]</strong> {{ row.source }} → {{ row.destination }}
+                <span class="text-muted ms-2" style="font-size:0.8rem;">{{ row.timestamp }}</span>
+            </div>
+            <div>
+                {% if row.label == 'ATTACK' %}
+                    <span class="badge-danger-soft">ATTACK</span>
+                {% else %}
+                    <span class="badge-safe-soft">BENIGN</span>
+                {% endif %}
+                <span class="text-muted ms-2" style="font-size:0.8rem;">{{ "%.1f"|format(row.confidence|float * 100) }}%</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

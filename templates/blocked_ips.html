@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="panel-banner">
+    <div>
+        <h3 class="mb-1"><i class="fa-solid fa-ban"></i> Blocked IPs</h3>
+        <div style="opacity:0.85;">IPs here are flagged instantly by the real-time detector</div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#b45454;"><i class="fa-solid fa-ban"></i></div>
+            <div class="kpi-value">{{ blocked_list|length }}</div>
+            <div class="kpi-label">Currently Blocked</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#c99a4a;"><i class="fa-solid fa-lightbulb"></i></div>
+            <div class="kpi-value">{{ suggested|length }}</div>
+            <div class="kpi-label">Suggested (Unblocked Attackers)</div>
+        </div>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-header"><i class="fa-solid fa-plus"></i> Add IP to Blocklist</div>
+    <div class="section-body">
+        <form method="POST" class="row g-2 align-items-end">
+            <input type="hidden" name="action" value="block">
+            <div class="col-md-4">
+                <label class="form-label">IP Address</label>
+                <input type="text" name="ip" class="form-control" placeholder="192.168.10.5" required>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Reason</label>
+                <input type="text" name="reason" class="form-control" placeholder="Repeated port scan attempts">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-danger w-100"><i class="fa-solid fa-ban"></i> Block</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if suggested %}
+<div class="section-card">
+    <div class="section-header"><i class="fa-solid fa-lightbulb"></i> Suggested: Attackers Not Yet Blocked</div>
+    <div class="section-body">
+        {% for ip in suggested %}
+        <div class="suggested-row">
+            <div><i class="fa-solid fa-triangle-exclamation text-warning"></i> <strong>{{ ip }}</strong> — seen as ATTACK in live detection</div>
+            <form method="POST" class="m-0">
+                <input type="hidden" name="action" value="block">
+                <input type="hidden" name="ip" value="{{ ip }}">
+                <input type="hidden" name="reason" value="Flagged as ATTACK in live detection">
+                <button type="submit" class="btn btn-sm btn-danger"><i class="fa-solid fa-ban"></i> Block</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="section-card">
+    <div class="section-header"><i class="fa-solid fa-list"></i> Current Blocklist</div>
+    <div class="section-body">
+        {% if blocked_list %}
+            {% for row in blocked_list %}
+            <div class="blocked-row">
+                <div>
+                    <strong>{{ row.ip }}</strong> — {{ row.reason }}
+                    <span class="text-muted ms-2" style="font-size:0.85rem;">blocked {{ row.blocked_at }}</span>
+                </div>
+                <form method="POST" class="m-0">
+                    <input type="hidden" name="action" value="unblock">
+                    <input type="hidden" name="ip" value="{{ row.ip }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Unblock</button>
+                </form>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-shield-halved"></i>
+                No IPs are currently blocked.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Vision AI: Intelligent Physical and Network Intrusion</title>
+    <meta name="description" content="Unified AI-powered security platform with face authentication and network intrusion detection">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='soc.css') }}" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+{% if logged_in %}
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<nav class="soc-sidebar" id="socSidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <div class="brand-text">
+            <div class="brand-title">Secure Vision AI</div>
+            <div class="brand-sub">Intelligent Intrusion</div>
+        </div>
+    </div>
+
+    <div class="sidebar-section-label">CORE</div>
+    <ul class="sidebar-nav">
+        <li><a class="sidebar-link {% if request.path == '/soc' %}active{% endif %}" href="/soc">
+            <i class="fa-solid fa-gauge-high"></i><span>SOC Dashboard</span>
+        </a></li>
+        <li><a class="sidebar-link {% if request.path == '/' %}active{% endif %}" href="/">
+            <i class="fa-solid fa-network-wired"></i><span>NIDS Panel</span>
+        </a></li>
+        <li><a class="sidebar-link {% if request.path == '/live-monitoring' %}active{% endif %}" href="/live-monitoring">
+            <i class="fa-solid fa-satellite-dish"></i><span>Live Monitor</span>
+        </a></li>
+    </ul>
+
+    <div class="sidebar-section-label">IDENTITY</div>
+    <ul class="sidebar-nav">
+        <li><a class="sidebar-link {% if request.path == '/face-auth' %}active{% endif %}" href="/face-auth">
+            <i class="fa-solid fa-camera"></i><span>Face Auth</span>
+        </a></li>
+        <li><a class="sidebar-link {% if request.path == '/users' %}active{% endif %}" href="/users">
+            <i class="fa-solid fa-users"></i><span>Users</span>
+        </a></li>
+        <li><a class="sidebar-link {% if request.path == '/auth-logs' %}active{% endif %}" href="/auth-logs">
+            <i class="fa-solid fa-fingerprint"></i><span>Auth Logs</span>
+        </a></li>
+    </ul>
+
+    <div class="sidebar-section-label">THREATS</div>
+    <ul class="sidebar-nav">
+        <li><a class="sidebar-link {% if request.path == '/security-events' %}active{% endif %}" href="/security-events">
+            <i class="fa-solid fa-triangle-exclamation"></i><span>Security Events</span>
+        </a></li>
+        <li><a class="sidebar-link {% if request.path == '/blocked-ips' %}active{% endif %}" href="/blocked-ips">
+            <i class="fa-solid fa-ban"></i><span>Blocked IPs</span>
+        </a></li>
+    </ul>
+
+    <div class="sidebar-section-label">ANALYSIS</div>
+    <ul class="sidebar-nav">
+        <li><a class="sidebar-link {% if request.path == '/overview' %}active{% endif %}" href="/overview">
+            <i class="fa-solid fa-chart-line"></i><span>Model Overview</span>
+        </a></li>
+        <li><a class="sidebar-link {% if request.path == '/upload' %}active{% endif %}" href="/upload">
+            <i class="fa-solid fa-cloud-arrow-up"></i><span>CSV Analysis</span>
+        </a></li>
+        <li><a class="sidebar-link {% if request.path == '/reports' %}active{% endif %}" href="/reports">
+            <i class="fa-solid fa-chart-column"></i><span>Reports</span>
+        </a></li>
+    </ul>
+
+    <div class="sidebar-section-label">SYSTEM</div>
+    <ul class="sidebar-nav">
+        <li><a class="sidebar-link {% if request.path == '/system-health' %}active{% endif %}" href="/system-health">
+            <i class="fa-solid fa-heart-pulse"></i><span>System Health</span>
+        </a></li>
+        <li><a class="sidebar-link {% if request.path == '/settings' %}active{% endif %}" href="/settings">
+            <i class="fa-solid fa-gear"></i><span>Settings</span>
+        </a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="user-avatar"><i class="fa-solid fa-user-shield"></i></div>
+            <div class="user-info">
+                <div class="user-name">{{ admin_username }}</div>
+                <div class="user-role">Administrator</div>
+            </div>
+        </div>
+        <a href="/logout" class="sidebar-logout" title="Logout">
+            <i class="fa-solid fa-right-from-bracket"></i>
+        </a>
+    </div>
+</nav>
+
+<!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+<div class="soc-main" id="socMain">
+    <!-- Top Bar -->
+    <div class="soc-topbar">
+        <button class="btn-sidebar-toggle" id="sidebarToggle">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="topbar-breadcrumb">
+            <i class="fa-solid fa-shield-halved text-primary me-2"></i>
+            Secure Vision AI: Intelligent Physical and Network Intrusion
+        </div>
+        <div class="topbar-status ms-auto d-flex align-items-center gap-3">
+            <span class="status-pill" id="globalNidsStatus">
+                <span class="status-dot"></span>NIDS
+            </span>
+            <span class="status-pill" id="globalCamStatus">
+                <span class="status-dot"></span>CAM
+            </span>
+            <span class="topbar-time" id="topbarClock"></span>
+        </div>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="px-4 pt-3">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Page Content -->
+    <div class="soc-content">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+{% else %}
+<!-- Not logged in: simple centered layout -->
+<div class="auth-wrapper">
+    {% block login_content %}{% endblock %}
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Clock
+function updateClock() {
+    const el = document.getElementById('topbarClock');
+    if (el) el.textContent = new Date().toLocaleTimeString('en-US', {hour12: false});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Sidebar toggle
+const toggle = document.getElementById('sidebarToggle');
+const sidebar = document.getElementById('socSidebar');
+const main = document.getElementById('socMain');
+if (toggle) {
+    toggle.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        main.classList.toggle('expanded');
+    });
+}
+
+// Poll system status every 10s
+async function pollStatus() {
+    try {
+        const res = await fetch('/api/system-health');
+        if (!res.ok) return;
+        const h = await res.json();
+        const nidsEl = document.getElementById('globalNidsStatus');
+        const camEl = document.getElementById('globalCamStatus');
+        if (nidsEl) {
+            nidsEl.className = 'status-pill ' + (h.nids_capture?.status === 'ONLINE' ? 'pill-online' : 'pill-offline');
+        }
+        if (camEl) {
+            camEl.className = 'status-pill ' + (h.camera?.status === 'ONLINE' ? 'pill-online' : 'pill-offline');
+        }
+    } catch(e) {}
+}
+setInterval(pollStatus, 10000);
+pollStatus();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

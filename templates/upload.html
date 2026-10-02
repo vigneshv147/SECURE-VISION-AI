@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="panel-banner">
+    <div>
+        <h3 class="mb-1"><i class="fa-solid fa-cloud-arrow-up"></i> Upload CSV</h3>
+        <div style="opacity:0.85;">Run batch predictions on a file of network flow records</div>
+    </div>
+</div>
+
+<div class="row g-3 align-items-start">
+    <div class="col-md-7">
+        <div class="section-card">
+            <div class="section-header"><i class="fa-solid fa-file-arrow-up"></i> Load Network Traffic Data</div>
+            <div class="section-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <label for="csvFileInput" class="dropzone d-block mb-3" id="dropzone">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <div>Drop your CSV file here or click to browse</div>
+                        <div class="text-muted" style="font-size:0.8rem;">CSV only, {{ features|length }} required columns</div>
+                        <div class="file-name" id="fileNameDisplay"></div>
+                    </label>
+                    <input type="file" name="csv_file" id="csvFileInput" accept=".csv" class="d-none" required>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fa-solid fa-play"></i> Analyze Traffic Data
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="section-card">
+            <div class="section-header"><i class="fa-solid fa-list-check"></i> File Requirements</div>
+            <div class="section-body">
+                <p class="mb-2"><i class="fa-solid fa-file-csv"></i> <strong>Format:</strong> .csv file only</p>
+                <p class="mb-1"><i class="fa-solid fa-table-columns"></i> <strong>Required columns ({{ features|length }}):</strong></p>
+                <p class="text-muted mb-2" style="font-size:0.8rem; max-height:100px; overflow-y:auto;">
+                    {{ features|join(', ') }}
+                </p>
+                <p class="text-muted mb-0" style="font-size:0.8rem;">
+                    Extra columns (like an original Label) are fine — they'll be ignored during prediction.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if results %}
+<div class="section-card" id="resultsSection">
+    <div class="section-header"><i class="fa-solid fa-circle-check"></i> Analysis Complete — {{ results.filename }}</div>
+    <div class="section-body">
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background-color:#5b8fc7;"><i class="fa-solid fa-database"></i></div>
+                    <div class="kpi-value">{{ results.n_total }}</div>
+                    <div class="kpi-label">Total Records</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background-color:#b45454;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="kpi-value">{{ results.n_attacks }}</div>
+                    <div class="kpi-label">Attacks Detected</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background-color:#4a9d6e;"><i class="fa-solid fa-shield-check"></i></div>
+                    <div class="kpi-value">{{ results.n_benign }}</div>
+                    <div class="kpi-label">Normal Traffic</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background-color:#c99a4a;"><i class="fa-solid fa-percent"></i></div>
+                    <div class="kpi-value">{{ "%.1f"|format(results.avg_confidence * 100) }}%</div>
+                    <div class="kpi-label">Average Confidence</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Detailed Results (showing first {{ results.rows|length }} of {{ results.n_total }})</h6>
+            <a href="/download-results" class="btn btn-sm btn-outline-light">
+                <i class="fa-solid fa-download"></i> Export Full CSV
+            </a>
+        </div>
+
+        <div class="table-responsive" style="max-height: 500px;">
+            <table class="table table-sm table-dark table-hover table-striped">
+                <thead>
+                    <tr>
+                        {% for col in ['Prediction', 'Confidence'] %}
+                        <th>{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in results.rows %}
+                    <tr>
+                        <td>
+                            {% if row.Prediction == 'ATTACK' %}
+                                <span class="badge-danger-soft">ATTACK</span>
+                            {% else %}
+                                <span class="badge-safe-soft">BENIGN</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ "%.2f"|format(row.Confidence * 100) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if results %}
+<script>
+    document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+</script>
+{% endif %}
+
+<script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('csvFileInput');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            fileNameDisplay.textContent = '✓ ' + fileInput.files[0].name;
+        }
+    });
+
+    ['dragover', 'dragleave', 'drop'].forEach(evt => {
+        dropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            if (evt === 'dragover') dropzone.classList.add('dragover');
+            else dropzone.classList.remove('dragover');
+        });
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            fileNameDisplay.textContent = '✓ ' + e.dataTransfer.files[0].name;
+        }
+    });
+</script>
+
+{% endblock %}

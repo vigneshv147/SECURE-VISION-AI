@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="panel-banner">
+    <div>
+        <h3 class="mb-1"><i class="fa-solid fa-circle-info"></i> Model Overview</h3>
+        <div style="opacity:0.85;">AI models, training data, and live detection statistics</div>
+    </div>
+</div>
+
+<!-- Live Runtime Stats from DB -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#b45454;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="kpi-value">{{ db_stats.threats_detected }}</div>
+            <div class="kpi-label">Total Threats Logged</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#4a9d6e;"><i class="fa-solid fa-fingerprint"></i></div>
+            <div class="kpi-value">{{ db_stats.auth_success }}</div>
+            <div class="kpi-label">Auth Successes</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#c99a4a;"><i class="fa-solid fa-user-slash"></i></div>
+            <div class="kpi-value">{{ db_stats.auth_fail }}</div>
+            <div class="kpi-label">Auth Failures / Alerts</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background-color:#5b8fc7;"><i class="fa-solid fa-users"></i></div>
+            <div class="kpi-value">{{ db_stats.total_users }}</div>
+            <div class="kpi-label">Enrolled Users</div>
+        </div>
+    </div>
+</div>
+
+<!-- ML Model Performance -->
+<div class="section-card mb-4">
+    <div class="section-header"><i class="fa-solid fa-microchip"></i> Machine Learning Model Performance</div>
+    <div class="section-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="kpi-card h-100 d-flex flex-column">
+                    <span class="badge bg-success mb-2">✓ Active — Best Performance</span>
+                    <h5>XGBoost</h5>
+                    <p class="text-muted" style="font-size:0.85rem;">
+                        Gradient-boosted trees trained on 25 selected features. Used for all real-time detection.
+                    </p>
+                    <div class="kpi-value" style="color:#16a34a;">{{ "%.1f"|format(xgb.Accuracy * 100) }}%</div>
+                    <div class="kpi-label mb-2">Accuracy</div>
+                    <p class="text-muted mb-0" style="font-size:0.8rem;">
+                        F1: {{ "%.2f"|format(xgb['F1-score'] * 100) }}% |
+                        Precision: {{ "%.2f"|format(xgb.Precision * 100) }}% |
+                        Recall: {{ "%.2f"|format(xgb.Recall * 100) }}%
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="kpi-card h-100 d-flex flex-column">
+                    <span class="badge bg-primary mb-2">Strong Ensemble</span>
+                    <h5>Random Forest</h5>
+                    <p class="text-muted" style="font-size:0.85rem;">
+                        Ensemble of decision trees trained on all 78 features. Used for feature importance analysis.
+                    </p>
+                    <div class="kpi-value" style="color:#58a6ff;">{{ "%.1f"|format(rf.Accuracy * 100) }}%</div>
+                    <div class="kpi-label mb-2">Accuracy</div>
+                    <p class="text-muted mb-0" style="font-size:0.8rem;">
+                        F1: {{ "%.2f"|format(rf['F1-score'] * 100) }}% |
+                        Precision: {{ "%.2f"|format(rf.Precision * 100) }}% |
+                        Recall: {{ "%.2f"|format(rf.Recall * 100) }}%
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="kpi-card h-100 d-flex flex-column">
+                    <span class="badge bg-warning text-dark mb-2">Linear Baseline</span>
+                    <h5>Logistic Regression</h5>
+                    <p class="text-muted" style="font-size:0.85rem;">
+                        Simple linear classifier used as a baseline to justify the tree-based models.
+                    </p>
+                    <div class="kpi-value" style="color:#f59e0b;">{{ "%.1f"|format(lr.Accuracy * 100) }}%</div>
+                    <div class="kpi-label mb-2">Accuracy</div>
+                    <p class="text-muted mb-0" style="font-size:0.8rem;">
+                        F1: {{ "%.2f"|format(lr['F1-score'] * 100) }}% |
+                        Precision: {{ "%.2f"|format(lr.Precision * 100) }}% |
+                        Recall: {{ "%.2f"|format(lr.Recall * 100) }}%
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- Live Attack Type Breakdown Chart -->
+    <div class="col-md-6">
+        <div class="section-card h-100">
+            <div class="section-header"><i class="fa-solid fa-chart-bar"></i> Live Attack Type Breakdown</div>
+            <div class="section-body">
+                {% if attack_type_labels %}
+                <div style="height: 220px;">
+                    <canvas id="attackTypeChart"></canvas>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No security events logged yet. Data will appear automatically as the system detects threats.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- Training Dataset -->
+    <div class="col-md-6">
+        <div class="section-card h-100">
+            <div class="section-header"><i class="fa-solid fa-database"></i> Training Dataset</div>
+            <div class="section-body">
+                <p class="text-muted">Trained on the CICIDS2017 dataset, combining 8 capture files covering benign traffic and multiple real attack categories.</p>
+                <ul class="list-unstyled mb-0">
+                    <li><i class="fa-solid fa-check text-success"></i> 2,520,798 total flow records</li>
+                    <li><i class="fa-solid fa-check text-success"></i> 78 original network features</li>
+                    <li><i class="fa-solid fa-check text-success"></i> 25 features selected (correlation + importance)</li>
+                    <li><i class="fa-solid fa-check text-success"></i> 2,095,057 benign / 425,741 attack flows</li>
+                    <li><i class="fa-solid fa-check text-success"></i> Attack types: DoS, DDoS, PortScan, Brute Force, Bot, Web Attacks, Infiltration</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="section-card h-100">
+            <div class="section-header"><i class="fa-solid fa-layer-group"></i> Detection Architecture</div>
+            <div class="section-body">
+                <p class="text-muted">This system uses a hybrid, layered detection approach:</p>
+                <ol>
+                    <li><strong>Blocklist check</strong> — known-bad IPs are flagged instantly, no ML needed</li>
+                    <li><strong>ML classification</strong> — XGBoost classifies each flow as BENIGN or ATTACK using 25 features</li>
+                    <li><strong>Rate-based rules</strong> — tracks connection rate per source IP to catch port scans</li>
+                    <li><strong>Face correlation</strong> — network attacks are linked to the physical identity at the terminal</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="section-card h-100">
+            <div class="section-header"><i class="fa-solid fa-gear"></i> Technology Stack</div>
+            <div class="section-body">
+                <div class="row">
+                    <div class="col-6">
+                        <ul class="list-unstyled">
+                            <li><i class="fa-solid fa-check text-success"></i> Python 3</li>
+                            <li><i class="fa-solid fa-check text-success"></i> scikit-learn</li>
+                            <li><i class="fa-solid fa-check text-success"></i> XGBoost</li>
+                            <li><i class="fa-solid fa-check text-success"></i> SHAP (Explainable AI)</li>
+                            <li><i class="fa-solid fa-check text-success"></i> Scapy / Npcap</li>
+                            <li><i class="fa-solid fa-check text-success"></i> YOLOv11 (face detection)</li>
+                        </ul>
+                    </div>
+                    <div class="col-6">
+                        <ul class="list-unstyled">
+                            <li><i class="fa-solid fa-check text-success"></i> Flask</li>
+                            <li><i class="fa-solid fa-check text-success"></i> SQLite3</li>
+                            <li><i class="fa-solid fa-check text-success"></i> Bootstrap 5</li>
+                            <li><i class="fa-solid fa-check text-success"></i> Chart.js</li>
+                            <li><i class="fa-solid fa-check text-success"></i> OpenCV</li>
+                            <li><i class="fa-solid fa-check text-success"></i> face_recognition / dlib</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if attack_type_labels %}
+<script>
+Chart.defaults.color = '#c9d1d9';
+Chart.defaults.borderColor = '#2d3139';
+const attackCtx = document.getElementById('attackTypeChart');
+new Chart(attackCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ attack_type_labels | tojson }},
+        datasets: [{
+            label: 'Events',
+            data: {{ attack_type_counts | tojson }},
+            backgroundColor: ['#b45454','#5b8fc7','#c99a4a','#4a9d6e','#9b59b6','#e67e22'],
+            borderRadius: 5,
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: '#c9d1d9', font: { size: 11 } }, grid: { display: false } },
+            y: { ticks: { color: '#c9d1d9', font: { size: 11 } }, grid: { color: '#2d3139' } }
+        }
+    }
+});
+</script>
+{% endif %}
+
+{% endblock %}

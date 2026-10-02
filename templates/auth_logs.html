@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Authentication Logs</h2>
+        <div class="text-muted small">Historical record of face recognition and physical access events</div>
+    </div>
+</div>
+
+<div class="glass-card">
+    <div class="card-header-glass">
+        <span><i class="fa-solid fa-fingerprint me-2"></i>Access Audit Trail</span>
+        <span class="badge-soc badge-info">{{ logs|length }} Records</span>
+    </div>
+    <div class="card-body-glass p-0">
+        {% if logs %}
+        <div class="table-responsive" style="max-height: 800px;">
+            <table class="table table-soc mb-0 table-hover">
+                <thead style="position: sticky; top: 0; background: var(--soc-bg-panel-solid); z-index: 1;">
+                    <tr>
+                        <th>Time</th>
+                        <th>Event</th>
+                        <th>Identity</th>
+                        <th>Status</th>
+                        <th>Confidence</th>
+                        <th>Session / Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td class="small white-space-nowrap">{{ log.timestamp.replace('T', ' ')[:19] }}</td>
+                        <td>
+                            {% if log.event_type == 'FACE_AUTH_SUCCESS' %}
+                                <i class="fa-solid fa-face-smile text-success me-1"></i> Authentication
+                            {% elif log.event_type == 'FACE_AUTH_FAIL' %}
+                                <i class="fa-solid fa-face-frown text-danger me-1"></i> Auth Failure
+                            {% elif log.event_type == 'UNKNOWN_FACE' %}
+                                <i class="fa-solid fa-user-secret text-warning me-1"></i> Unknown Face
+                            {% elif log.event_type == 'ENROLLMENT' %}
+                                <i class="fa-solid fa-camera text-primary me-1"></i> Enrollment
+                            {% else %}
+                                {{ log.event_type }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.user_id %}
+                                <a href="/users/{{ log.user_id }}" class="text-decoration-none fw-bold text-primary">{{ log.full_name or log.user_id }}</a>
+                            {% else %}
+                                <span class="text-muted fst-italic">Unidentified</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.status == 'SUCCESS' %}
+                                <span class="badge-soc badge-success">SUCCESS</span>
+                            {% elif log.status == 'ALERT' %}
+                                <span class="badge-soc badge-warning">ALERT</span>
+                            {% else %}
+                                <span class="badge-soc badge-danger">{{ log.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">
+                            {% if log.confidence %}
+                                {{ "%.1f"|format(log.confidence * 100) }}%
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.session_id %}
+                                <code class="small text-info d-block">{{ log.session_id }}</code>
+                            {% endif %}
+                            <code class="small text-muted">{{ log.source_ip or 'Camera Station' }}</code>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center p-5 text-muted">
+            <i class="fa-solid fa-file-signature fs-2 mb-3"></i><br>
+            No authentication logs found.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

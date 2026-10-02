@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-3">
+    <a href="/security-events" class="btn btn-glass px-3 py-2"><i class="fa-solid fa-arrow-left"></i></a>
+    <div>
+        <h2 class="h4 fw-bold mb-1">Threat Analysis Report</h2>
+        <div class="text-muted small">Event ID: {{ event.id }} | {{ event.timestamp.replace('T', ' ')[:19] }}</div>
+    </div>
+    <div class="ms-auto">
+        {% if event.severity == 'CRITICAL' %}
+            <span class="badge-soc badge-danger fs-5 px-3 py-2"><i class="fa-solid fa-triangle-exclamation me-2"></i> CRITICAL SEVERITY</span>
+        {% elif event.severity == 'HIGH' %}
+            <span class="badge-soc badge-danger fs-5 px-3 py-2">HIGH SEVERITY</span>
+        {% elif event.severity == 'MEDIUM' %}
+            <span class="badge-soc badge-warning fs-5 px-3 py-2">MEDIUM SEVERITY</span>
+        {% else %}
+            <span class="badge-soc badge-info fs-5 px-3 py-2">LOW SEVERITY</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Core Details -->
+    <div class="col-lg-7">
+        <div class="glass-card h-100">
+            <div class="card-header-glass">Event Details</div>
+            <div class="card-body-glass">
+                <div class="row mb-4">
+                    <div class="col-sm-6 mb-3">
+                        <div class="text-muted small text-uppercase mb-1">Event Type</div>
+                        <div class="fw-bold fs-5 text-white">{{ event.event_type }}</div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <div class="text-muted small text-uppercase mb-1">Attack Classification</div>
+                        <div class="fw-bold fs-5 text-danger">{{ event.attack_type or 'N/A' }}</div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <div class="text-muted small text-uppercase mb-1">Source IP</div>
+                        <code class="fs-5 text-warning">{{ event.source_ip or 'Unknown' }}</code>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <div class="text-muted small text-uppercase mb-1">Destination IP</div>
+                        <code class="fs-5 text-white">{{ event.destination_ip or 'Unknown' }}</code>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <div class="text-muted small text-uppercase mb-1">Detection Confidence</div>
+                        <div class="fw-bold fs-5">{{ "%.1f"|format((event.confidence or 0) * 100) }}%</div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <div class="text-muted small text-uppercase mb-1">Status</div>
+                        <span class="badge-soc {{ 'badge-success' if event.status == 'RESOLVED' else 'badge-warning' }} fs-6">{{ event.status }}</span>
+                    </div>
+                </div>
+                <div class="bg-dark bg-opacity-50 p-3 rounded border border-secondary border-opacity-25">
+                    <div class="text-muted small text-uppercase mb-2">Description</div>
+                    <div class="text-white">{{ event.description or 'No additional details provided.' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Correlated Identity -->
+    <div class="col-lg-5">
+        <div class="glass-card h-100">
+            <div class="card-header-glass">Correlated Identity</div>
+            <div class="card-body-glass">
+                {% if user %}
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; background: linear-gradient(135deg, var(--soc-danger), var(--soc-warning));">
+                            <i class="fa-solid fa-user text-white fs-3"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-white">{{ user.full_name }}</h5>
+                            <div class="text-warning small">{{ user.role|title }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 mb-4">
+                        <i class="fa-solid fa-link me-2"></i> This network threat originated from an IP address associated with an active session belonging to this user.
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                        <span class="text-muted small">User ID</span>
+                        <code class="text-white">{{ user.user_id }}</code>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                        <span class="text-muted small">Session ID</span>
+                        <code class="text-white">{{ event.session_id }}</code>
+                    </div>
+                    
+                    <div class="mt-4 text-center">
+                        <a href="/users/{{ user.user_id }}" class="btn btn-outline-light w-100">View User Profile</a>
+                    </div>
+                {% else %}
+                    <div class="text-center p-4">
+                        <i class="fa-solid fa-user-secret fs-1 text-muted mb-3 d-block"></i>
+                        <h5 class="text-white">Unattributed Network Activity</h5>
+                        <p class="small text-muted mt-2 mb-0">
+                            The source IP ({{ event.source_ip }}) does not match any currently active authenticated session in the system. 
+                            This traffic was generated by an unauthenticated or unknown entity.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SHAP Analysis -->
+<div class="glass-card">
+    <div class="card-header-glass">
+        <span><i class="fa-solid fa-brain me-2"></i>AI Explainability (SHAP Analysis)</span>
+        {% if event.shap_data %}
+            <span class="badge-soc badge-success">Analysis Complete</span>
+        {% else %}
+            <span class="badge-soc badge-warning">Analysis Unavailable/Pending</span>
+        {% endif %}
+    </div>
+    <div class="card-body-glass">
+        {% if event.shap_data %}
+            <p class="text-muted small mb-4">
+                The machine learning model flagged this flow as an attack based on the following feature contributions. Red bars push the prediction towards ATTACK, blue bars push towards BENIGN.
+            </p>
+            
+            <div class="row">
+                <div class="col-lg-8">
+                    <!-- Custom HTML Waterfall Chart -->
+                    <div class="shap-chart">
+                        {% for feature in event.shap_data.features %}
+                            {% set is_positive = feature.contribution > 0 %}
+                            {% set width = (feature.contribution|abs * 10)|round(1) %}
+                            {# Cap visual width at 100% #}
+                            {% set width = 100 if width > 100 else width %}
+                            
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="text-end pe-3 text-truncate small text-white" style="width: 35%;" title="{{ feature.name }} (Value: {{ feature.value }})">
+                                    {{ feature.name }}<br>
+                                    <span class="text-muted" style="font-size:0.7rem;">Val: {{ feature.value }}</span>
+                                </div>
+                                <div class="position-relative" style="width: 65%; height: 24px; border-left: 2px solid var(--soc-border);">
+                                    {% if is_positive %}
+                                        <div class="position-absolute h-100 rounded-end d-flex align-items-center" 
+                                             style="left: 0; width: {{ width }}%; background-color: rgba(239, 68, 68, 0.6); border: 1px solid var(--soc-danger);">
+                                             <span class="ms-2 small fw-bold text-white">+{{ "%.2f"|format(feature.contribution) }}</span>
+                                        </div>
+                                    {% else %}
+                                        <!-- Note: Negative contributions render leftwards conceptually, but for simplicity in this HTML view, we'll draw them rightwards from axis but in blue -->
+                                        <div class="position-absolute h-100 rounded-end d-flex align-items-center" 
+                                             style="left: 0; width: {{ width }}%; background-color: rgba(59, 130, 246, 0.6); border: 1px solid var(--soc-primary);">
+                                             <span class="ms-2 small fw-bold text-white">{{ "%.2f"|format(feature.contribution) }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="bg-dark p-3 rounded border border-secondary border-opacity-50">
+                        <h6 class="fw-bold mb-3 border-bottom border-secondary pb-2">Analysis Summary</h6>
+                        <ul class="list-unstyled small text-muted mb-0">
+                            <li class="mb-2"><strong class="text-white">Base Expected Value:</strong> {{ event.shap_data.base_value or 'N/A' }}</li>
+                            <li class="mb-2">Top contributing feature: <strong class="text-danger">{{ event.shap_data.features[0].name }}</strong></li>
+                            <li>This indicates network behaviour characteristic of <strong>{{ event.attack_type or 'malicious scanning/flooding' }}</strong>.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center p-5 text-muted">
+                <i class="fa-solid fa-code-merge fs-2 mb-3"></i><br>
+                SHAP explanation is not available for this event.<br>
+                <small>(Analysis is automatically generated only for high-confidence attacks)</small>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

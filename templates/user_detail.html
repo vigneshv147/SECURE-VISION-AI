@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-3">
+    <a href="/users" class="btn btn-glass px-3 py-2"><i class="fa-solid fa-arrow-left"></i></a>
+    <div>
+        <h2 class="h4 fw-bold mb-1">User Details: {{ user.full_name }}</h2>
+        <div class="text-muted small">ID: <code class="text-white">{{ user.user_id }}</code> | @{{ user.username }}</div>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+        {% if user.account_status == 'active' %}
+            <a href="/users/enroll/{{ user.user_id }}" class="btn btn-primary-glow">
+                <i class="fa-solid fa-camera me-2"></i> Enroll / Update Face
+            </a>
+            <form action="/users/{{ user.user_id }}/deactivate" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to deactivate this user?');">
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="fa-solid fa-user-slash me-2"></i> Deactivate
+                </button>
+            </form>
+        {% else %}
+            <span class="badge-soc badge-danger fs-6 py-2 px-3">Account Inactive</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- User Profile Card -->
+    <div class="col-lg-4">
+        <div class="glass-card h-100">
+            <div class="card-body-glass text-center pt-5">
+                <div class="mb-4 position-relative d-inline-block">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto" 
+                         style="width: 120px; height: 120px; background: linear-gradient(135deg, var(--soc-primary), var(--soc-accent));">
+                        <span class="fs-1 fw-bold">{{ user.full_name[0] }}</span>
+                    </div>
+                    {% if user.auth_status == 'enrolled' %}
+                        <span class="position-absolute bottom-0 end-0 p-2 bg-success border border-dark border-3 rounded-circle text-white shadow-sm" title="Face Enrolled">
+                            <i class="fa-solid fa-face-smile"></i>
+                        </span>
+                    {% else %}
+                        <span class="position-absolute bottom-0 end-0 p-2 bg-warning border border-dark border-3 rounded-circle text-dark shadow-sm" title="Pending Enrollment">
+                            <i class="fa-solid fa-clock"></i>
+                        </span>
+                    {% endif %}
+                </div>
+                
+                <h4 class="fw-bold mb-1">{{ user.full_name }}</h4>
+                <div class="text-primary fw-semibold mb-3">{{ user.role|title }}</div>
+                
+                <div class="d-flex justify-content-center gap-2 mb-4">
+                    <span class="badge-soc {{ 'badge-success' if user.account_status == 'active' else 'badge-danger' }}">
+                        {{ user.account_status|upper }}
+                    </span>
+                    <span class="badge-soc {{ 'badge-success' if user.auth_status == 'enrolled' else 'badge-warning' }}">
+                        {{ user.auth_status|upper }}
+                    </span>
+                </div>
+                
+                <hr class="border-secondary opacity-25">
+                
+                <div class="text-start px-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Created</span>
+                        <span class="small fw-semibold">{{ user.created_at.split(' ')[0] if ' ' in user.created_at else user.created_at.split('T')[0] }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Last Login</span>
+                        <span class="small fw-semibold">{{ (user.last_login.split('T')[0] ~ ' ' ~ user.last_login.split('T')[1][:8]) if user.last_login else 'Never' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Auth Logs -->
+    <div class="col-lg-8">
+        <div class="glass-card h-100">
+            <div class="card-header-glass">
+                <span><i class="fa-solid fa-history me-2"></i>Recent Authentication History</span>
+            </div>
+            <div class="card-body-glass p-0">
+                {% if logs %}
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-soc mb-0">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Event</th>
+                                <th>Status</th>
+                                <th>Source IP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td class="small">{{ log.timestamp.replace('T', ' ')[:19] }}</td>
+                                <td>
+                                    {% if log.event_type == 'FACE_AUTH_SUCCESS' %}
+                                        <i class="fa-solid fa-face-smile text-success me-1"></i> Face Auth
+                                    {% elif log.event_type == 'ENROLLMENT' %}
+                                        <i class="fa-solid fa-camera text-primary me-1"></i> Face Enrolled
+                                    {% else %}
+                                        {{ log.event_type }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if log.status == 'SUCCESS' %}
+                                        <span class="badge-soc badge-success">SUCCESS</span>
+                                    {% else %}
+                                        <span class="badge-soc badge-danger">{{ log.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td><code class="small text-white">{{ log.source_ip or 'Local System' }}</code></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-5 text-muted">
+                    <i class="fa-solid fa-file-signature fs-2 mb-3"></i><br>
+                    No authentication logs found for this user.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

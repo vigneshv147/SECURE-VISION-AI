@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">System Settings</h2>
+        <div class="text-muted small">Configure application thresholds and security policies</div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="glass-card">
+            <div class="card-header-glass">Configuration Parameters</div>
+            <div class="card-body-glass">
+                <form method="POST" action="/settings">
+                    
+                    <h5 class="fw-bold mb-3 mt-2 text-primary border-bottom border-secondary pb-2"><i class="fa-solid fa-face-viewfinder me-2"></i>Face Recognition</h5>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small text-uppercase">YOLO Confidence Threshold</label>
+                            <div class="input-group input-group-soc">
+                                <input type="number" step="0.05" min="0" max="1" name="yolo_confidence" class="form-control" value="{{ settings.yolo_confidence or '0.50' }}">
+                                <span class="input-group-text"><i class="fa-solid fa-crosshairs"></i></span>
+                            </div>
+                            <div class="form-text small text-muted">Minimum confidence for a face bounding box to be valid.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small text-uppercase">Face Match Similarity Threshold</label>
+                            <div class="input-group input-group-soc">
+                                <input type="number" step="0.05" min="0" max="1" name="face_match_threshold" class="form-control" value="{{ settings.face_match_threshold or '0.50' }}">
+                                <span class="input-group-text"><i class="fa-solid fa-check-double"></i></span>
+                            </div>
+                            <div class="form-text small text-muted">Cosine similarity threshold for recognizing known users.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small text-uppercase">Session Timeout (Minutes)</label>
+                            <div class="input-group input-group-soc">
+                                <input type="number" min="1" name="session_timeout_minutes" class="form-control" value="{{ settings.session_timeout_minutes or '60' }}">
+                                <span class="input-group-text"><i class="fa-solid fa-clock"></i></span>
+                            </div>
+                            <div class="form-text small text-muted">Time until an authenticated session expires.</div>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold mb-3 mt-4 text-primary border-bottom border-secondary pb-2"><i class="fa-solid fa-network-wired me-2"></i>Network IDS & Response</h5>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small text-uppercase">Port Scan Threshold</label>
+                            <div class="input-group input-group-soc">
+                                <input type="number" min="5" name="scan_port_threshold" class="form-control" value="{{ settings.scan_port_threshold or '20' }}">
+                                <span class="input-group-text"><i class="fa-solid fa-radar"></i></span>
+                            </div>
+                            <div class="form-text small text-muted">Number of distinct ports accessed within 10s to flag a scan.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small text-uppercase">Auto-Block Enabled</label>
+                            <select name="auto_block_enabled" class="form-select bg-dark border-secondary text-white">
+                                <option value="false" {% if settings.auto_block_enabled == 'false' %}selected{% endif %}>FALSE (Safe Mode / Log Only)</option>
+                                <option value="true" {% if settings.auto_block_enabled == 'true' %}selected{% endif %}>TRUE (Not Recommended)</option>
+                            </select>
+                            <div class="form-text small text-muted">Enable automatic IP blocking for critical threats. <br><span class="text-warning"><i class="fa-solid fa-triangle-exclamation"></i> Keep false to prevent accidental lockouts.</span></div>
+                        </div>
+                    </div>
+
+                    <div class="border-top border-secondary pt-4 text-end">
+                        <button type="submit" class="btn btn-primary-glow px-5"><i class="fa-solid fa-save me-2"></i>Save Configuration</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="glass-card mb-4">
+            <div class="card-header-glass">Environment Setup</div>
+            <div class="card-body-glass">
+                <p class="small text-muted mb-3">Some settings must be configured via environment variables in the <code>.env</code> file. A restart is required to apply changes to these values.</p>
+                
+                <ul class="list-group list-group-flush bg-transparent">
+                    <li class="list-group-item bg-transparent text-white px-0 border-secondary">
+                        <div class="fw-bold small text-primary">ADMIN_USERNAME</div>
+                        <div class="small text-muted">Admin login username</div>
+                    </li>
+                    <li class="list-group-item bg-transparent text-white px-0 border-secondary">
+                        <div class="fw-bold small text-primary">ADMIN_PASSWORD</div>
+                        <div class="small text-muted">Admin login password</div>
+                    </li>
+                    <li class="list-group-item bg-transparent text-white px-0 border-secondary">
+                        <div class="fw-bold small text-primary">YOLO_MODEL_PATH</div>
+                        <div class="small text-muted">Path to best.pt</div>
+                    </li>
+                    <li class="list-group-item bg-transparent text-white px-0 border-secondary">
+                        <div class="fw-bold small text-primary">CAMERA_INDEX</div>
+                        <div class="small text-muted">Hardware camera index (0, 1, etc.)</div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

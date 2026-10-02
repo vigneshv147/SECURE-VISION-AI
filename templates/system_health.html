@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">System Diagnostics</h2>
+        <div class="text-muted small">Real-time health status of AI platform subsystems</div>
+    </div>
+    <button class="btn btn-outline-light btn-sm" onclick="window.location.reload();">
+        <i class="fa-solid fa-rotate me-2"></i>Refresh Status
+    </button>
+</div>
+
+<div class="row g-4">
+    <!-- Camera Subsystem -->
+    <div class="col-md-6 col-lg-4">
+        <div class="glass-card h-100 border-{{ 'success' if health.camera.status == 'ONLINE' else 'danger' }}">
+            <div class="card-body-glass text-center position-relative">
+                <i class="fa-solid fa-camera fs-1 mb-3 {{ 'text-success' if health.camera.status == 'ONLINE' else 'text-danger' }}"></i>
+                <h5 class="fw-bold mb-1">Camera Stream</h5>
+                <p class="small text-muted mb-3">{{ health.camera.detail or 'Operational' }}</p>
+                <span class="badge-soc {{ 'badge-success' if health.camera.status == 'ONLINE' else 'badge-danger' }} w-100 d-block py-2">
+                    {{ health.camera.status }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- YOLO Subsystem -->
+    <div class="col-md-6 col-lg-4">
+        <div class="glass-card h-100 border-{{ 'success' if health.yolo.status == 'ONLINE' else 'danger' }}">
+            <div class="card-body-glass text-center position-relative">
+                <i class="fa-solid fa-crosshairs fs-1 mb-3 {{ 'text-success' if health.yolo.status == 'ONLINE' else 'text-danger' }}"></i>
+                <h5 class="fw-bold mb-1">YOLO Detection</h5>
+                <p class="small text-muted mb-3 text-truncate">{{ health.yolo.detail or 'Operational' }}</p>
+                <span class="badge-soc {{ 'badge-success' if health.yolo.status == 'ONLINE' else 'badge-danger' }} w-100 d-block py-2">
+                    {{ health.yolo.status }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Face Rec Subsystem -->
+    <div class="col-md-6 col-lg-4">
+        <div class="glass-card h-100 border-{{ 'success' if health.face_recognition.status == 'ONLINE' else 'danger' }}">
+            <div class="card-body-glass text-center position-relative">
+                <i class="fa-solid fa-face-viewfinder fs-1 mb-3 {{ 'text-success' if health.face_recognition.status == 'ONLINE' else 'text-danger' }}"></i>
+                <h5 class="fw-bold mb-1">Face Recognition</h5>
+                <p class="small text-muted mb-3">{{ health.face_recognition.detail or 'Operational' }}</p>
+                <span class="badge-soc {{ 'badge-success' if health.face_recognition.status == 'ONLINE' else 'badge-danger' }} w-100 d-block py-2">
+                    {{ health.face_recognition.status }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- NIDS Model Subsystem -->
+    <div class="col-md-6 col-lg-4">
+        <div class="glass-card h-100 border-{{ 'success' if health.nids_model.status == 'ONLINE' else 'danger' }}">
+            <div class="card-body-glass text-center position-relative">
+                <i class="fa-solid fa-network-wired fs-1 mb-3 {{ 'text-success' if health.nids_model.status == 'ONLINE' else 'text-danger' }}"></i>
+                <h5 class="fw-bold mb-1">NIDS Model</h5>
+                <p class="small text-muted mb-3">{{ health.nids_model.detail or 'XGBoost Loaded' }}</p>
+                <span class="badge-soc {{ 'badge-success' if health.nids_model.status == 'ONLINE' else 'badge-danger' }} w-100 d-block py-2">
+                    {{ health.nids_model.status }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scapy Subsystem -->
+    <div class="col-md-6 col-lg-4">
+        <div class="glass-card h-100 border-{{ 'success' if health.scapy.status == 'ONLINE' else 'danger' }}">
+            <div class="card-body-glass text-center position-relative">
+                <i class="fa-solid fa-satellite-dish fs-1 mb-3 {{ 'text-success' if health.scapy.status == 'ONLINE' else 'text-danger' }}"></i>
+                <h5 class="fw-bold mb-1">Scapy Capture Engine</h5>
+                <p class="small text-muted mb-3">{{ health.scapy.detail or 'Npcap Active' }}</p>
+                <span class="badge-soc {{ 'badge-success' if health.scapy.status == 'ONLINE' else 'badge-danger' }} w-100 d-block py-2">
+                    {{ health.scapy.status }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Database Subsystem -->
+    <div class="col-md-6 col-lg-4">
+        <div class="glass-card h-100 border-{{ 'success' if health.database.status == 'ONLINE' else 'danger' }}">
+            <div class="card-body-glass text-center position-relative">
+                <i class="fa-solid fa-database fs-1 mb-3 {{ 'text-success' if health.database.status == 'ONLINE' else 'text-danger' }}"></i>
+                <h5 class="fw-bold mb-1">SQLite Storage</h5>
+                <p class="small text-muted mb-3">{{ health.database.detail or 'Read/Write OK' }}</p>
+                <span class="badge-soc {{ 'badge-success' if health.database.status == 'ONLINE' else 'badge-danger' }} w-100 d-block py-2">
+                    {{ health.database.status }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
